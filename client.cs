@@ -1,99 +1,135 @@
-using Microsoft.SqlServer.Server;
+
 using System;
-using System.IO;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading;
+using System.Collections.Generic;
 
-namespace csharp
+class Program
 {
-    public class TcpCustomClient
+    static Random random = new Random();
+
+    static (string, (int, int, int, int)) Gen(int complexity)
     {
-        public TcpClient client = new TcpClient();
-        NetworkStream stream;
+        int MaxInt = 100;
 
-        int port = 1025;
-        string ip = "127.0.0.1";
-        int receiveBuffer = 256;
-
-        public TcpCustomClient(string ip, int port)
+        byte[] randomChar(List<char> listChar, int count)
         {
-            this.ip = ip;
-            this.port = port;
-            new Thread(ConnectionTask).Start();
+            List<char> r = new List<char>();
+            for (int i = 0; i <= count; i++)
+            {
+                r.Add(listChar[random.Next(0, listChar.Count)]);
+            }
+            return new string(r.ToArray());
         }
 
-        void ConnectionTask()
+        (string, int) Line(List<char> listChar, int countInt)
         {
-            while (client.Connected == false)
+            List<int> Int = new List<int>();
+            for (int i = 0; i < countInt - 1; i++)
             {
-                Console.WriteLine("[client] ConnectionTask");
-                client = new TcpClient();
-                try
-                {
-                    client.Connect(ip, port);
-                    Console.WriteLine("[client] connected to " + ip + ":" + port);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ip + ":" + port + " " + ex.Message);
-                }
-                if (client.Connected)
-                {
-                    Console.WriteLine("[client] start receive task");
-                    new Thread(ReceiveTask).Start();
-                    return;
-                }
+                Int.Add(RandomInt(1, MaxInt));
+            }
+
+            string chars = randomChar(listChar, countInt - 1);
+            string strg = "";
+            for (int i = 0; i < chars.Length; i++)
+            {
+                strg += $"{Int[i]}{chars[i]}";
+            }
+            strg += $"{Int[Int.Count - 1]}";
+
+            int gs = Evaluate(strg);
+            if (0 < gs && gs < MaxInt && AllCharsCount(strg, listChar))
+            {
+                return (strg, gs);
+            }
+            else
+            {
+                return Line(listChar, countInt);
             }
         }
 
-        void ReceiveTask()
+        bool AllCharsCount(string strg, List<char> listChar)
         {
-            Console.WriteLine("[client] start listening data " + ip + ":" + port);
-            while (true)
+            foreach (char c in listChar)
             {
-                if (client == null || !client.Connected)
-                {
-                    new Thread(ConnectionTask).Start();
-                    break;
-                }
-
-                stream = client.GetStream();
-                if (stream.DataAvailable)
-                {
-                    byte[] bytes = new byte[receiveBuffer];
-                    int bytesRead;
-                    string data = "";
-                    while ((bytesRead = stream.Read(bytes, 0, bytes.Length)) != 0)
-                    {
-                        data = Encoding.ASCII.GetString(bytes, 0, bytesRead);
-                        Console.WriteLine("[client] received data: " + data);
-                    }
-                }
+                if (CountOccurrences(strg, c) == 0)
+                    return false;
             }
-
+            return true;
         }
+
+        int CountOccurrences(string str, char c)
+        {
+            int count = 0;
+            foreach (char ch in str)
+            {
+                if (ch == c)
+                    count++;
+            }
+            return count;
+        }
+
+        int Evaluate(string strg)
+        {
+            return (int)new System.Data.DataTable().Compute(strg, null);
+        }
+
+        int RandomInt(int min, int max)
+        {
+            return random.Next(min, max);
+        }
+
+        // выбор сложности.
+        List<char> listChar = new List<char>() { '-', '+' };
+        int countInt = 3;
+
+        if (complexity == 0)
+        {
+            countInt = 3;
+        }
+        else if (complexity == 1)
+        {
+            countInt = 3;
+            listChar.Add('*');
+            MaxInt = 200;
+        }
+        else if (complexity == 2)
+        {
+            countInt = 4;
+            listChar.Add('*');
+            MaxInt = 350;
+        }
+        else if (complexity == 3)
+        {
+            countInt = 4;
+            listChar.Add('*');
+            MaxInt = 500;
+        }
+
+        (string, int) primer = Line(listChar, countInt);
+
+        (int, int, int, int) false_ether(int true_otvet)
+        {
+            int fls0 = true_otvet + RandomInt(-50, 50);
+            double s = RandomDouble();
+            int fls1 = (int)Math.Round(true_otvet * s);
+            int fls2 = (int)Math.Round(true_otvet / 1.5) - RandomInt(0, 10);
+            return (fls0, fls1, fls2, true_otvet);
+        }
+
+        (int, int, int, int) l = false_ether(primer.Item2);
+        return (primer.Item1, (l.Item1, l.Item2, l.Item3, l.Item4));
     }
-}
 
-internal class Program
-{
-    static void Main(string[] args)
+    static double RandomDouble()
     {
-        /*Socket s = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        try
-        {
-            s.ConnectAsync(IPAddress.Parse("127.0.0.1"), 1025);
-            Console.Write("Enter some text : ");
-            string q = Console.ReadLine();
-            byte[] data = Encoding.Default.GetBytes(q);
-            s.Send(data);
-        }
-        catch
-        {
-        }
-        s.Close();*/
-        TcpCustomClient s = new TcpCustomClient("127.0.0.1", 1025);
+        return random.NextDouble();
+    }
+
+    static void Main()
+    {
+        Console.WriteLine(Gen(0));
+        Console.WriteLine(Gen(1));
+        Console.WriteLine(Gen(2));
+        Console.WriteLine(Gen(3));
     }
 }
